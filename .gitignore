@@ -4,3 +4,5 @@ venv/
 .idea/
 
 tests_male/
+
+__pycache__/

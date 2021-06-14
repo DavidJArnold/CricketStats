@@ -1,91 +1,55 @@
 import ruamel.yaml as yaml
 import glob
+from helper_functions import match_summary
 
-
-def print_match_summary(info) -> None:
-    team1 = info['teams'][0]
-    team2 = info['teams'][1]
-    if 'venue' in info:
-        venue = info['venue']
-        team_venue = f'{team1} v {team2} at {venue}.'
-        if 'city' in info:
-            team_venue = f'{team1} v {team2} at {venue}, {info["city"]}.'
-    elif 'city' in info:
-        venue = info['city']
-        team_venue = f'{team1} v {team2} at {venue}.'
-    else:
-        team_venue = f'{team1} v {team2}.'
-
-    outcome = ''
-    if 'winner' in info['outcome']:
-        winner = info['outcome']['winner']
-        try:
-            by = info['outcome']['by']
-            if 'runs' in by:
-                r_margin = info['outcome']['by']['runs']
-                if 'innings' in by:
-                    outcome = f'{winner} won by an innings and {r_margin} runs.'
-                else:
-                    outcome = f'{winner} won by {r_margin} runs.'
-            if 'wickets' in by:
-                w_margin = info['outcome']['by']['wickets']
-                if 'innings' in by:
-                    outcome = f'{winner} won by an innings and {w_margin} wickets.'
-                else:
-                    outcome = f'{winner} won by {w_margin} wickets.'
-        except KeyError:
-            if info['outcome']['method'] == 'Awarded':
-                outcome = f'{winner} were awarded the victory.'
-            else:
-                raise
-    elif 'result' in info['outcome']:
-        if info['outcome']['result'] == 'draw':
-            outcome = 'The match was drawn.'
-        elif info['outcome']['result'] == 'tie':
-            outcome = 'The match was tied.'
-        elif info['outcome']['result'] == 'no result':
-            outcome = 'There was no result.'
-
-    print(team_venue + ' ' + outcome)
-    return
-
-
+# initialise counting arrays for actions happening on specific balls
 ball_wickets = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 ball_noballs = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 ball_wides = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 
+# the list of match files in the folder tests_male
 files = [f for f in glob.glob("tests_male/*.yaml")]
 
-## To display a single match (for debugging)
+# To display a single match (for debugging), use the following:
 # with open(list(files)[216]) as stream:
 #     test = yaml.safe_load(stream)
 # print(test['info'])
 # print_match_summary(test['info'])
 
+# iterate through each match
 for idx, name in enumerate(files):
+    # open match file and attempt to parse yaml
     with open(name) as stream:
         try:
             test = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
 
+    # print a summary of the match information
     print(f'Match {idx + 1} out of {len(files)}.')
-    print_match_summary(test['info'])
+    print(match_summary(test['info']))
 
+    # iterate through the innings' in the match
     for innings in list(test['innings']):
-
+        # iterate through the balls in the innings
         for balls in innings[list(innings)[0]]['deliveries']:
+            # the delivery information is the only key-value pair in the ball field
+            # the key is in the format 23.4, meaning 4th ball of the 24th over (0.1 is the first ball of the innings)
             key = list(balls)[0]
 
+            # did a wicket fall?
             if 'wicket' in balls[key]:
+                # add 1 to the count of wickets for the appropriate ball number
                 ball_wickets[int(str(key).split(".")[-1]) - 1] += 1
 
+            # was there an extra?
             if 'extras' in balls[key]:
                 if 'noballs' in balls[key]['extras']:
                     ball_noballs[int(str(key).split(".")[-1]) - 1] += 1
                 if 'wides' in balls[key]['extras']:
                     ball_wides[int(str(key).split(".")[-1]) - 1] += 1
 
+    # display current results
     print(ball_wickets)
     print(ball_wides)
     print(ball_noballs)
