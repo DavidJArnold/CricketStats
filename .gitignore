@@ -6,3 +6,11 @@ venv/
 tests_male/
 
 __pycache__/
+
+bbl/
+
+.vs/
+
+credentials.py
+
+t20_scoreboard.py
