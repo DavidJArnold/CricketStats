@@ -1,44 +1,10 @@
-import mysql.connector
-from mysql.connector import Error
 from helper_functions import bbl_match_processing
 import glob
+import re
 from credentials import credentials
-
-
-def create_connection(host_name, user_name, user_password, db_name):
-    connection = None
-    try:
-        connection = mysql.connector.connect(
-            host=host_name,
-            user=user_name,
-            passwd=user_password,
-            database=db_name
-        )
-        print("Connection to MySQL DB successful")
-    except Error as e:
-        print(f"The error '{e}' occurred")
-
-    return connection
-
-
-def create_database(connection, query):
-    cursor = connection.cursor()
-    try:
-        cursor.execute(query)
-        print("Database created successfully")
-    except Error as e:
-        print(f"The error '{e}' occurred")
-
-
-def execute_query(connection, query):
-    cursor = connection.cursor()
-    try:
-        cursor.execute(query)
-        connection.commit()
-        print("Query executed successfully")
-    except Error as e:
-        print(f"The error '{e}' occurred")
-
+from SQL_functions import create_connection
+from SQL_functions import execute_query
+from mysql.connector import Error
 
 # connect to the table test in the the database
 HOST, USER, PASSWORD, DB_NAME = credentials()
@@ -55,9 +21,11 @@ except Error as e:
 create_users_table = """
 CREATE TABLE overs (
   id INT AUTO_INCREMENT, 
+  match_id INT,
   rr FLOAT, 
   over_number INT,
   balls INT,
+  legal_balls INT,
   runs INT,
   wickets INT, 
   ground TEXT, 
@@ -80,19 +48,19 @@ for the_match in files:
 
     output = bbl_match_processing(the_match)
 
+    # match id (from the yaml filename)
+    match_id = int(re.search("[\\d]+", the_match).group())
+
     # first fixed part of SQL command
-    top_string = """
-    INSERT INTO
-    `overs` (`rr`, `over_number`, `balls`, `runs`, `wickets`, `ground`, `date`, `season`, `innings`, `batting_team`, `bowling_team`)
-    VALUES
-        """
+    top_string = """INSERT INTO `overs` (`match_id`, `rr`, `over_number`, `balls`, `legal_balls`, `runs`, 
+    `wickets`, `ground`, `date`, `season`, `innings`, `batting_team`, `bowling_team`) VALUES """
 
     # generate and execute command for each over of each innings of each match
     for o in output:
         # second part of SQL command
-        add_row_to_table = f"({o[1]}, {o[0]}, {o[2]}, {o[3]}, {o[4]}, '{o[5]}', '{o[6]}', {o[7]}, {o[8]}, '{o[9]}', '{o[10]}')"
-        # entries in the o list: [OVER, RR,  N_BALLS, RUNS,  WICKETS,  GROUND,   DATE,   SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM]"
-        # order of columns in table: rr, over_number, balls, runs, wickets, ground, date, season, innings, batting_team, bowling_team
+        add_row_to_table = f"({match_id}, {o[1]}, {o[0]}, {o[2]}, {o[3]}, {o[4]}, {o[5]}, '{o[6]}', '{o[7]}', {o[8]}, {o[9]}, '{o[10]}', '{o[11]}') "
+        # entries in the o list: [OVER, RR,  N_BALLS, N_LEGAL_BALLS, RUNS,  WICKETS,  GROUND,   DATE,   SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM]"
+        # order of columns in table: rr, over_number, balls, legal_balls, runs, wickets, ground, date, season, innings, batting_team, bowling_team
 
         # add the data to the table
         execute_query(connector, top_string + add_row_to_table)

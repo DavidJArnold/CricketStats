@@ -66,23 +66,52 @@ def match_summary(info) -> str:
     # format the final string with the venue, team, and result information, and return it
     return team_venue + ' ' + outcome
 
+
+def bbl_innings_info(game, innings):
+    GROUND = game['info']['venue']  # ground the game was played at
+    if GROUND == 'Western Australia Cricket Association Ground':
+        GROUND = 'W.A.C.A. Ground'
+    elif GROUND == 'Brisbane Cricket Ground, Woolloongabba':
+        GROUND = 'Brisbane Cricket Ground'
+    if isinstance(game['info']['dates'][0], datetime.date):
+        date_dt = game['info']['dates'][0]
+    elif isinstance(game['info']['dates'][0], str):
+        date_dt = datetime.datetime.strptime(game['info']['dates'][0], '%Y-%m-%d').date()
+    DATE = date_dt.isoformat()
+    SEASON = int((date_dt - datetime.date(2010, 8, 1)) / datetime.timedelta(
+        days=365))  # which bbl season? 2011/12 season is season 1
+    INNINGS = 1 if list(innings)[0] == '1st innings' else 2  # first or second innings
+    BATTING_TEAM = innings[list(innings)[0]]['team']  # batting team
+    BOWLING_TEAM = [S for S in game['info']['teams'] if S != BATTING_TEAM][0]  # bowling team
+
+    return GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM
+
+
 def bbl_extract_over_data(game):
     output = []
+
     # iterate through the innings' in the match
     for innings in list(game['innings']):
         # empty arrays which hold over-by-over information
-        r_over = [0 for idx in range(0, 20)]  # runs in each over
-        b_over = [0 for idx in range(0, 20)]  # balls in each over
-        w_over = [0 for idx in range(0, 20)]  # wickets in each over
+        r_over = [0 for _ in range(0, 20)]  # runs in each over
+        b_over = [0 for _ in range(0, 20)]  # balls in each over
+        legal_balls = [0 for _ in range(0, 20)]  # legal balls in each over (excluding wides/no balls)
+        w_over = [0 for _ in range(0, 20)]  # wickets in each over
+
+        # information about the innings
+        GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM = bbl_innings_info(game, innings)
 
         # iterate through the balls in the innings
         for ball in innings[list(innings)[0]]['deliveries']:
             key_name = list(ball.keys())[0]  # delivery in the form a.b, 1.2 is the second ball in the second over
-            delivery = int(str(key_name).split('.')[-1])  # the b part, the ball in the over
             over = int(str(key_name).split('.')[0])  # the number of completed overs
 
             r_over[over] += ball[key_name]['runs']['total']  # add runs scored on this ball to over total
             b_over[over] += 1  # add one to count of balls in the over
+            legal_balls[over] += 1
+            if 'extras' in ball[key_name]:
+                if 'wides' in ball[key_name]['extras'] or 'noballs' in ball[key_name]['extras']:
+                    legal_balls[over] -= 1
             if 'wicket' in ball[key_name]:
                 w_over[over] += 1  # add to the wicket count
                 # NOTE: Doesn't handle two wickets falling on the same ball
@@ -92,24 +121,12 @@ def bbl_extract_over_data(game):
                 OVER = overs + 1  # over number
                 RR = r_over[overs] / b_over[overs]  # run-rate for this over
                 N_BALLS = b_over[overs]  # balls bowled in the over
+                N_LEGAL_BALLS = legal_balls[over]  # legal balls bowled in the over
                 RUNS = r_over[overs]  # runs scored in the over
                 WICKETS = w_over[overs]  # wickets taken in the over
-                GROUND = game['info']['venue']  # ground the game was played at
-                if GROUND=='Western Australia Cricket Association Ground':
-                    GROUND = 'W.A.C.A. Ground'
-                elif GROUND=='Brisbane Cricket Ground, Woolloongabba':
-                    GROUND = 'Brisbane Cricket Ground'
-                if isinstance(game['info']['dates'][0], datetime.date):
-                    date_dt = game['info']['dates'][0]
-                elif isinstance(game['info']['dates'][0], str):
-                    date_dt = datetime.datetime.strptime(game['info']['dates'][0], '%Y-%m-%d').date()
-                DATE = date_dt.isoformat()
-                SEASON = int((date_dt-datetime.date(2010, 8, 1))/datetime.timedelta(days=365)) # which bbl season? 2011/12 season is season 1
-                INNINGS = 1 if list(innings)[0] == '1st innings' else 2  # first or second innings
-                BATTING_TEAM = innings[list(innings)[0]]['team']  # batting team
-                BOWLING_TEAM = [S for S in game['info']['teams'] if S != BATTING_TEAM][0]  # bowling team
 
-                output.append([OVER, RR, N_BALLS, RUNS, WICKETS, GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM])
+                output.append([OVER, RR, N_BALLS, N_LEGAL_BALLS, RUNS,
+                               WICKETS, GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM])
 
     return output
 
