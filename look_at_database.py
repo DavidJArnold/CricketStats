@@ -22,11 +22,14 @@ results = execute_read_query(connector, select_query)
 print([float(r[0]*6) for r in results])
 
 # run-rate per ball separated by season of the BBL
-select_query = f"SELECT season, over_number, 6*SUM(runs)/SUM(balls) avg_run_rate FROM test.overs" \
+select_query = f"SELECT season, over_number, 6*SUM(runs)/SUM(balls) avg_run_rate FROM test.overs " \
             f"GROUP BY season, over_number ORDER BY season, over_number; "
 result = execute_read_query(connector, select_query)
 RR_df = pd.DataFrame(result, columns=['season', 'over', 'RR'])
 RR_df['RR'] = RR_df['RR'].apply(float)
+
+print(RR_df.head())
+
 
 # plot variance of run-rate per over from mean, separated by season
 ax = sns.lineplot(data=RR_df, x='over', y='RR', hue='season')
@@ -39,6 +42,8 @@ RR_df['mean_RR'] = mean_RR
 RR_df = RR_df.reset_index()
 RR_df['RR_diff'] = RR_df['RR']-RR_df['mean_RR']
 print(RR_df)
+
+RR_df.to_csv("run_rate_season.csv")
 
 sns.set_theme(style="darkgrid")
 palette = sns.color_palette("muted", 10)
