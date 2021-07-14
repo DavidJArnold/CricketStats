@@ -19,28 +19,27 @@ for r in results:
 # get average run-rate per ball in each over across all games
 select_query = "SELECT SUM(runs)/SUM(balls) FROM test.overs GROUP BY over_number;"
 results = execute_read_query(connector, select_query)
-print([float(r[0]*6) for r in results])
+print([float(r[0] * 6) for r in results])
 
 # run-rate per ball separated by season of the BBL
 select_query = f"SELECT season, over_number, 6*SUM(runs)/SUM(balls) avg_run_rate FROM test.overs " \
-            f"GROUP BY season, over_number ORDER BY season, over_number; "
+               f"GROUP BY season, over_number ORDER BY season, over_number; "
 result = execute_read_query(connector, select_query)
 RR_df = pd.DataFrame(result, columns=['season', 'over', 'RR'])
 RR_df['RR'] = RR_df['RR'].apply(float)
 
 print(RR_df.head())
 
-
 # plot variance of run-rate per over from mean, separated by season
 ax = sns.lineplot(data=RR_df, x='over', y='RR', hue='season')
 ax.set(xlabel="over", ylabel="run-rate")
 ax.legend(title="Season")
-plt.show()
+# plt.show()
 mean_RR = RR_df.groupby('over')['RR'].mean()
 RR_df = RR_df.set_index('over')
 RR_df['mean_RR'] = mean_RR
 RR_df = RR_df.reset_index()
-RR_df['RR_diff'] = RR_df['RR']-RR_df['mean_RR']
+RR_df['RR_diff'] = RR_df['RR'] - RR_df['mean_RR']
 print(RR_df)
 
 RR_df.to_csv("run_rate_season.csv")
@@ -50,7 +49,7 @@ palette = sns.color_palette("muted", 10)
 ax = sns.lineplot(data=RR_df, x='over', y='RR_diff', hue='season', style='season', palette=palette)
 ax.set(xlabel="over", ylabel="run-rate")
 ax.legend(title="Season")
-plt.show()
+# plt.show()
 
 # run-rate per over separated by ground
 select_query = """SELECT ground, over_number, 6*SUM(runs)/SUM(balls) avg_run_rate 
@@ -65,4 +64,24 @@ ax = sns.lineplot(data=R_df, x='over', y='RR', hue='ground')
 ax.set(xlabel="over", ylabel="run-rate")
 
 ax.legend(title="Ground")
-plt.show()
+# plt.show()
+
+
+# RR_df can also be created directly from an SQL query
+full_query = """
+WITH 
+    m1 AS (
+        SELECT season, over_number, 6*SUM(runs)/SUM(balls) RR 
+        FROM overs 
+        GROUP BY season, over_number
+        ),
+    m2 AS (
+        SELECT over_number, AVG(RR) mean 
+        FROM m1
+        GROUP BY over_number)
+SELECT m1.over_number, season, RR, mean, RR-mean deviation
+FROM m1 JOIN m2 WHERE m1.over_number=m2.over_number
+ORDER BY season, m1.over_number;
+"""
+result = execute_read_query(connector, full_query)
+print(pd.DataFrame(result, columns=['over', 'season', 'RR', 'mean_RR', 'RR_diff']).head())

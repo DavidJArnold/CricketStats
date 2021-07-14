@@ -131,6 +131,31 @@ def bbl_extract_over_data(game):
     return output
 
 
+def bbl_extract_wicket_data(game):
+    output = []
+
+    # iterate through the innings' in the match
+    for innings in list(game['innings']):
+
+        # information about the innings
+        GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM = bbl_innings_info(game, innings)
+
+        # iterate through the balls in the innings
+        for ball in innings[list(innings)[0]]['deliveries']:
+            key_name = list(ball.keys())[0]  # delivery in the form a.b, 1.2 is the second ball in the second over
+
+            if 'wicket' in ball[key_name]:
+                OVER, BALL = [int(s) for s in str(key_name).split('.')]  # the number of completed overs
+                PLAYER = ball[key_name]['wicket']['player_out']
+                METHOD = ball[key_name]['wicket']['kind']
+                print(f"{PLAYER} {METHOD} {OVER}.{BALL}")
+
+                output.append([OVER, BALL, PLAYER, METHOD,
+                               GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM])
+
+    return output
+
+
 def bbl_match_processing(match):
     with open(match) as stream:
         try:
@@ -138,4 +163,14 @@ def bbl_match_processing(match):
         except yaml.YAMLError as exc:
             print(exc)
     processed_match = bbl_extract_over_data(game)
+    return processed_match
+
+
+def bbl_wicket_processing(match):
+    with open(match) as stream:
+        try:
+            game = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+    processed_match = bbl_extract_wicket_data(game)
     return processed_match
