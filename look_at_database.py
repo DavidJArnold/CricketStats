@@ -85,3 +85,18 @@ ORDER BY season, m1.over_number;
 """
 result = execute_read_query(connector, full_query)
 print(pd.DataFrame(result, columns=['over', 'season', 'RR', 'mean_RR', 'RR_diff']).head())
+
+# query wickets table to get per-ball wicket proportion
+wickets_query = """
+WITH 
+	m1 AS (SELECT season, COUNT(*) total FROM wickets GROUP BY season)
+SELECT wickets.season, over_number+1 over_num,  COUNT(*)/total proportion 
+FROM wickets JOIN m1 WHERE m1.season=wickets.season 
+GROUP BY wickets.season, wickets.over_number
+ORDER BY wickets.season, wickets.over_number;
+"""
+
+w_DF = pd.DataFrame(execute_read_query(connector, wickets_query), columns=['season', 'over', 'proportion'])
+print(w_DF.head())
+
+w_DF.to_csv('wicket_balls.csv')
