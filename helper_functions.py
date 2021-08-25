@@ -139,19 +139,45 @@ def bbl_extract_wicket_data(game):
 
         # information about the innings
         GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM = bbl_innings_info(game, innings)
-
+        SCORE = 0
+        WICKET = 0
         # iterate through the balls in the innings
         for ball in innings[list(innings)[0]]['deliveries']:
             key_name = list(ball.keys())[0]  # delivery in the form a.b, 1.2 is the second ball in the second over
-
+            SCORE = SCORE + ball[key_name]['runs']['total']
             if 'wicket' in ball[key_name]:
+                WICKET = WICKET+1
                 OVER, BALL = [int(s) for s in str(key_name).split('.')]  # the number of completed overs
-                PLAYER = ball[key_name]['wicket']['player_out']
+                PLAYER = ball[key_name]['wicket']['player_out'].replace("'", "''")
+
                 METHOD = ball[key_name]['wicket']['kind']
-                print(f"{PLAYER} {METHOD} {OVER}.{BALL}")
+                #print(f"{PLAYER} {METHOD} {OVER}.{BALL}")
 
                 output.append([OVER, BALL, PLAYER, METHOD,
-                               GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM])
+                               GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM, SCORE, WICKET])
+
+    return output
+
+
+def bbl_extract_ball_data(game):
+    output = []
+
+    # iterate through the innings' in the match
+    for innings in list(game['innings']):
+
+        # information about the innings
+        GROUND, DATE, SEASON, INNINGS, BATTING_TEAM, BOWLING_TEAM = bbl_innings_info(game, innings)
+        SCORE = 0
+        NUM_WICKETS = 0
+        # iterate through the balls in the innings
+        for ball in innings[list(innings)[0]]['deliveries']:
+            key_name = list(ball.keys())[0]  # delivery in the form a.b, 1.2 is the second ball in the second over
+            OVER, BALL = [int(s) for s in str(key_name).split('.')]  # the number of completed overs
+            SCORE = SCORE + ball[key_name]['runs']['total']
+            WICKET = True if 'wicket' in ball[key_name] else False
+            NUM_WICKETS = NUM_WICKETS+1 if 'wicket' in ball[key_name] else NUM_WICKETS
+
+            output.append([OVER, BALL, SEASON, SCORE, WICKET, NUM_WICKETS])
 
     return output
 
@@ -173,4 +199,14 @@ def bbl_wicket_processing(match):
         except yaml.YAMLError as exc:
             print(exc)
     processed_match = bbl_extract_wicket_data(game)
+    return processed_match
+
+
+def bbl_ball_processing(match):
+    with open(match) as stream:
+        try:
+            game = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+    processed_match = bbl_extract_ball_data(game)
     return processed_match
