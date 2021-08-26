@@ -46,6 +46,7 @@ CREATE TABLE ball_info (
   ball_number INT,
   ball_number_in_innings INT,
   runs INT,
+  score INT,
   wicket BOOLEAN,
   extra BOOLEAN,
   wicket_num INT,
@@ -111,11 +112,12 @@ for match in glob.iglob("bbl/*.yaml"):
         BOWLING_TEAM = TEAM_A if BATTING_TEAM != TEAM_A else TEAM_B
         BALL_NUMBER_IN_INNINGS = 0
         NUM_WICKETS = 0
-
+        SCORE = 0
         for ball in the_innings['deliveries']:
             key_name = list(ball.keys())[0]  # delivery in the form a.b, 1.2 is the second ball in the second over
             OVER, BALL = [int(s) for s in str(key_name).split('.')]  # the number of completed overs
             RUNS = ball[key_name]['runs']['total']
+            SCORE = SCORE + RUNS
 
             WICKET = True if 'wicket' in ball[key_name] else False
             EXTRA = True if 'extras' in ball[key_name] else False
@@ -124,10 +126,10 @@ for match in glob.iglob("bbl/*.yaml"):
             BALL_NUMBER_IN_INNINGS = BALL_NUMBER_IN_INNINGS + 1
 
             insert_ball_query = f"""INSERT INTO `ball_info` 
-            (`match_id`, `over_number`, `ball_number`, `ball_number_in_innings`, `runs`, `wicket`, 
-            `extra`, `wicket_num`, `innings`, `batting_team`, `bowling_team`) 
-            VALUES ({MATCH_ID}, {OVER}, {BALL}, {BALL_NUMBER_IN_INNINGS}, {RUNS}, {WICKET}, {EXTRA}, 
-            {NUM_WICKETS}, {INNINGS}, '{BATTING_TEAM}', '{BOWLING_TEAM}')
+            (`match_id`, `over_number`, `ball_number`, `ball_number_in_innings`, `runs`, `score`, 
+            `wicket`,`extra`, `wicket_num`, `innings`, `batting_team`, `bowling_team`) 
+            VALUES ({MATCH_ID}, {OVER}, {BALL}, {BALL_NUMBER_IN_INNINGS}, {RUNS}, {SCORE}, 
+            {WICKET}, {EXTRA}, {NUM_WICKETS}, {INNINGS}, '{BATTING_TEAM}', '{BOWLING_TEAM}')
             """
 
             execute_query(connector, insert_ball_query)
