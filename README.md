@@ -6,6 +6,9 @@ These files create and interrogate (respectively) MySQL databases for over-by-ov
 
 `interrogate_database.py` show some examples using SQL queries to retrieve data from the database. The results can be converted into DataFrames, and some of them are exported to csv files which can be imported into Tableau for further visualisations (or plotted using Python packages such as Seaborn).
 
+### `bbl_queries.sql`
+This SQL script file contains several example MySQL queries to show how the database can be used to obtain useful information.
+
 ###  `SQL_functions.py`
 `SQL_functions.py` provides simple functions to create/add/query tables in databases. Some of these functions were modelled after examples from RealPython.com.
 
