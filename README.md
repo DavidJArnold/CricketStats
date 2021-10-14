@@ -1,5 +1,5 @@
 # CricketStats
-A repository of Python code used to study ball-by-ball cricket data sourced from [cricsheet.org](cricsheet.org). The description of the Cricsheet yaml format can be found [here](https://cricsheet.org/format/yaml/#introduction-to-the-yaml-format).
+A repository of Python code used to study ball-by-ball cricket data sourced from [www.cricsheet.org](cricsheet.org). The description of the Cricsheet yaml format can be found [here](https://cricsheet.org/format/yaml/#introduction-to-the-yaml-format).
 
 ### `populate_databases.py` and `interrogate_database.py`
 These files create and interrogate (respectively) MySQL databases for over-by-over statistics for mens Big Bash matches. The database contains three tables, one for match information (such as venue, date, and teams), one for information about each ball (including runs, extras, whether a wicket fell), and one for wicket information (including the player dismissed and the method of dismissal).
